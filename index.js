@@ -1,6 +1,6 @@
 const express=require('express');
 const cors=require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const app=express();
 const port=process.env.PORT ||3000;
@@ -26,12 +26,14 @@ async function run() {
     await client.connect();
     const coffeeCollection = client.db("coffeeDB").collection('coffee');
 
+    /////////////// get all coffee from DB ///////////////
     app.get('/coffee', async(req,res)=>{
       const cursor=coffeeCollection.find();
       const result=await cursor.toArray();
       res.send(result);
     })
 
+    /////////////// create/post a new coffee to DB //////////////////////
     app.post('/coffee', async(req,res)=>{
       const newCoffee=req.body;
       console.log(newCoffee);
@@ -39,6 +41,41 @@ async function run() {
       res.send(result)
     })
 
+    /////////////// get one coffee  from DB by id //////////////////////
+    app.get('/coffee/:id', async(req,res)=>{
+      const id=req.params.id;
+      const query={_id: new ObjectId(id)}
+      const result=await coffeeCollection.findOne(query)
+      res.send(result)
+    })
+
+    /////////////// get one coffee  from DB by id and update this coffee info //////////////////////
+    app.put('/coffee/:id', async(req,res)=>{
+      const id=req.params.id;
+      const coffee=req.body;
+      const filter={_id: new ObjectId(id)}
+      const option={upsert: true}
+      const updateCoffee={
+        $set:{
+          name:coffee.name,
+          chef:coffee.chef,
+          supplier:coffee.supplier,
+          details:coffee.details,
+          photo:coffee.photo,
+          category:coffee.category
+        }
+      }
+      const result=await coffeeCollection.updateOne(filter,updateCoffee,option)
+      res.send(result)
+    })
+
+    //////////////// delete a coffee from DB by id////////////////
+    app.delete('/coffee/:id', async(req,res)=>{
+      const id=req.params.id;
+      const query={_id: new ObjectId(id)}
+      const result=await coffeeCollection.deleteOne(query)
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
